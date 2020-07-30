@@ -6,7 +6,7 @@ const Button = ({onPress, title, style}) => (
   <Pressable onPress={onPress}>
     <Text style={[{fontSize: 16, margin: 16}, style]}>{title}</Text>
   </Pressable>
-)
+);
 
 const Share = () => {
   const [sharedData, setSharedData] = useState('');
@@ -31,7 +31,7 @@ const Share = () => {
           style={styles.destructive}
         />
         <Button
-          title={sending ? "Sending..." : 'Send'}
+          title={sending ? 'Sending...' : 'Send'}
           onPress={() => {
             setSending(true);
 

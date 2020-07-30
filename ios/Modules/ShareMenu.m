@@ -5,4 +5,6 @@
 
 RCT_EXTERN_METHOD(getSharedText:(RCTResponseSenderBlock)callback)
 
+RCT_EXTERN_METHOD(donateShareIntent)
+
 @end

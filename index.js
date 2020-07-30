@@ -39,4 +39,7 @@ export default {
 
     return subscription;
   },
+  donateShareIntent() {
+    ShareMenu.donateShareIntent();
+  },
 };

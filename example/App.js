@@ -36,6 +36,10 @@ const App: () => React$Node = () => {
   }, []);
 
   useEffect(() => {
+    ShareMenu.donateShareIntent();
+  }, []);
+
+  useEffect(() => {
     const listener = ShareMenu.addNewShareListener(handleShare);
 
     return () => {

@@ -24,6 +24,7 @@ public let COULD_NOT_SAVE_FILE_ERROR = "Couldn't save file on disk"
 public let NO_EXTENSION_CONTEXT_ERROR = "No extension context attached"
 public let NO_DELEGATE_ERROR = "No ReactShareViewDelegate attached"
 public let COULD_NOT_FIND_ITEM_ERROR = "Couldn't find item attached to this share"
+public let FEATURE_NOT_SUPPORTED_VERSION = "This feature is not supported on this iOS version"
 
 // MARK: Keys
 

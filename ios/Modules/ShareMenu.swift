@@ -1,3 +1,5 @@
+import Intents
+
 @objc(ShareMenu)
 class ShareMenu: RCTEventEmitter {
 
@@ -115,6 +117,42 @@ class ShareMenu: RCTEventEmitter {
         sharedData = nil
     }
     
+    @objc
+    func donateShareIntent() {
+        guard #available(iOS 11.0, *) else  {
+            print("Error: \(FEATURE_NOT_SUPPORTED_VERSION)")
+            return
+        }
+
+        // Create an INSendMessageIntent to donate an intent for a conversation with Juan Chavez.
+        let groupName = INSpeakableString(spokenPhrase: "Juan Chavez")
+        let sendMessageIntent = INSendMessageIntent(recipients: nil,
+                                                    content: nil,
+                                                    speakableGroupName: groupName,
+                                                    conversationIdentifier: "sampleConversationIdentifier",
+                                                    serviceName: nil,
+                                                    sender: nil)
+
+        // Add the user's avatar to the intent.
+//        let image = INImage(named: "Some Image")
+        let image: INImage? = nil
+        if #available(iOS 12.0, *) {
+            sendMessageIntent.setImage(image, forParameterNamed: \.speakableGroupName)
+        }
+
+        // Donate the intent.
+        let interaction = INInteraction(intent: sendMessageIntent, response: nil)
+        interaction.donate(completion: { error in
+            if error != nil {
+                print("Error: \(error)")
+                // Add error handling here.
+            } else {
+                print("Done!")
+                // Do something, e.g. send the content to a contact.
+            }
+        })
+    }
+
     func dispatchEvent(with data: [String:String], and extraData: [String:Any]?) {
         guard hasListeners else { return }
 
