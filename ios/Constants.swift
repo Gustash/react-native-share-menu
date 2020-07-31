@@ -26,6 +26,7 @@ public let NO_DELEGATE_ERROR = "No ReactShareViewDelegate attached"
 public let COULD_NOT_FIND_ITEM_ERROR = "Couldn't find item attached to this share"
 public let FEATURE_NOT_SUPPORTED_VERSION = "This feature is not supported on this iOS version"
 public let WRONG_RECIPIENT_DATA = "The recipient data was not formatted correctly"
+public let NO_CONVERSATION_ID_ERROR = "You haven't provided a conversation identifier"
 
 // MARK: Keys
 
@@ -62,7 +63,7 @@ public let IDENTIFIER_KEY = "identifier"
 public let CUSTOM_IDENTIFIER_KEY = "customIdentifier"
 public let IS_ME_KEY = "isMe"
 public let CONTENT_KEY = "content"
-public let SPOKEN_PHRASE_KEY = "spokenPhrase"
+public let GROUP_NAME_KEY = "groupName"
 public let CONVERSATION_ID_KEY = "conversationId"
 public let SERVICE_NAME_KEY = "serviceName"
 public let SENDER_KEY = "sender"

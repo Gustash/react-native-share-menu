@@ -1,4 +1,3 @@
-import Intents
 import IntentsUI
 
 @objc(ShareMenu)
@@ -127,6 +126,15 @@ class ShareMenu: RCTEventEmitter {
             return
         }
 
+        var conversationId: String!
+
+        if let identifier = options[CONVERSATION_ID_KEY] as? String {
+            conversationId = identifier
+        } else {
+            reject("error", NO_CONVERSATION_ID_ERROR, nil)
+            return
+        }
+
         var recipients: [INPerson]?
         var sender: INPerson?
 
@@ -134,7 +142,7 @@ class ShareMenu: RCTEventEmitter {
             recipients = loadPeople(options)
 
             if let senderOption = options[SENDER_KEY] as? [String:Any?] {
-                sender = loadPerson(senderOption)
+                sender = INPerson.init(parse: senderOption)
             }
         }
 
@@ -142,14 +150,8 @@ class ShareMenu: RCTEventEmitter {
 
         var groupName: INSpeakableString?
 
-        if let spokenPhrase = options[SPOKEN_PHRASE_KEY] as? String {
+        if let spokenPhrase = options[GROUP_NAME_KEY] as? String {
             groupName = INSpeakableString(spokenPhrase: spokenPhrase)
-        }
-
-        var conversationId: String?
-
-        if let identifier = options[CONVERSATION_ID_KEY] as? String {
-            conversationId = identifier
         }
 
         var serviceName: String?
@@ -178,7 +180,7 @@ class ShareMenu: RCTEventEmitter {
                 }
             }
 
-            sendMessageIntent.setImage(image, forParameterNamed: \.speakableGroupName)
+            sendMessageIntent.setImage(image, forParameterNamed: \.conversationIdentifier)
         }
 
         // Donate the intent.
@@ -204,55 +206,7 @@ class ShareMenu: RCTEventEmitter {
             return nil
         }
 
-        return recipientsOptions.map { loadPerson($0) }
-    }
-
-    @available(iOS 12.0, *)
-    func loadPerson(_ recipient: [String:Any?]) -> INPerson {
-        let handle = recipient[HANDLE_KEY] as! String
-        let handleType: INPersonHandleType = {
-            switch(recipient[HANDLE_TYPE_KEY] as? String) {
-            case "email":
-                return .emailAddress
-            case "phone":
-                return .phoneNumber
-            default:
-                return .unknown
-            }
-        }()
-
-        var nameComponents: PersonNameComponents?
-        var displayName: String?
-
-        if let nameDetails = recipient[NAME_KEY] as? [String:String] {
-            nameComponents = PersonNameComponents(from: nameDetails)
-        } else if let name = recipient[NAME_KEY] as? String {
-            displayName = name
-        }
-
-        let contactIdentifier = recipient[IDENTIFIER_KEY] as? String ?? nil
-        let customIdentifier = recipient[CUSTOM_IDENTIFIER_KEY] as? String ?? nil
-        let isMe = recipient[IS_ME_KEY] as? Bool ?? false
-
-        var image: INImage?
-
-        if let imageUrl = recipient[IMAGE_KEY] as? String, let url = URL(string: imageUrl) {
-            image = INImage(url: url)
-        } else if let imageSource = recipient[IMAGE_KEY] {
-            DispatchQueue.main.sync {
-                if let uiImage = RCTConvert.uiImage(imageSource) {
-                    image = INImage(uiImage: uiImage)
-                }
-            }
-        }
-
-        return INPerson(personHandle: INPersonHandle(value: handle, type: handleType),
-                        nameComponents: nameComponents,
-                        displayName: displayName,
-                        image: image,
-                        contactIdentifier: contactIdentifier,
-                        customIdentifier: customIdentifier,
-                        isMe: isMe)
+        return recipientsOptions.map { INPerson.init(parse: $0) }
     }
 
     func dispatchEvent(with data: [String:String], and extraData: [String:Any]?) {

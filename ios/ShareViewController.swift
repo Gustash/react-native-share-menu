@@ -11,6 +11,7 @@ import MobileCoreServices
 import UIKit
 import Social
 import RNShareMenu
+import Intents
 
 class ShareViewController: SLComposeServiceViewController {
   var hostAppId: String?
@@ -48,8 +49,20 @@ class ShareViewController: SLComposeServiceViewController {
     }
 
     override func configurationItems() -> [Any]! {
-        // To add configuration options via table cells at the bottom of the sheet, return an array of SLComposeSheetConfigurationItem here.
-        return []
+      guard #available(iOSApplicationExtension 13.0, *),
+            let intent = self.extensionContext?.intent as? INSendMessageIntent,
+            let item = SLComposeSheetConfigurationItem() else {
+          return []
+      }
+
+      item.title = NSLocalizedString("To:", comment: "The To: label when sharing content.")
+      if let groupName = intent.groupName {
+        item.value = groupName
+      } else {
+        item.value = intent.recipients?.map { $0.displayName }.joined(separator: ", ")
+      }
+
+      return [item]
     }
 
   func handlePost(_ item: NSExtensionItem, extraData: [String:Any]? = nil) {
@@ -64,12 +77,12 @@ class ShareViewController: SLComposeServiceViewController {
       removeExtraData()
     }
 
-    if provider.isText {
-      storeText(withProvider: provider)
-    } else if provider.isURL {
+    if provider.isURL {
       storeUrl(withProvider: provider)
-    } else {
+    } else if provider.isFileURL {
       storeFile(withProvider: provider)
+    } else {
+      storeText(withProvider: provider)
     }
   }
 

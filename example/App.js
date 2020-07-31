@@ -34,9 +34,26 @@ const App: () => React$Node = () => {
   const donate = useCallback(async () => {
     try {
       await ShareMenu.donateShareIntent({
-        spokenPhrase: 'John Doe',
-        conversationId: 'sampleConversationIdentifier',
-        image: require('./assets/johndoe.jpeg'),
+        groupName: 'The Doe Family',
+        conversationId: 'doeFamilyGroup',
+        recipients: [
+          {
+            handle: '00000000',
+            handleType: 'phone',
+            name: {
+              prefix: 'Ms.',
+              givenName: 'Jane',
+              familyName: 'Doe',
+            },
+            image: 'https://i.pravatar.cc/300',
+          },
+          {
+            handle: 'john@doe.com',
+            handleType: 'email',
+            name: 'John Doe',
+            image: require('./assets/johndoe.jpeg'),
+          },
+        ],
       });
       Alert.alert(
         'Donated Contact',
