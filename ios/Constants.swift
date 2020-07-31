@@ -25,6 +25,7 @@ public let NO_EXTENSION_CONTEXT_ERROR = "No extension context attached"
 public let NO_DELEGATE_ERROR = "No ReactShareViewDelegate attached"
 public let COULD_NOT_FIND_ITEM_ERROR = "Couldn't find item attached to this share"
 public let FEATURE_NOT_SUPPORTED_VERSION = "This feature is not supported on this iOS version"
+public let WRONG_RECIPIENT_DATA = "The recipient data was not formatted correctly"
 
 // MARK: Keys
 
@@ -44,6 +45,27 @@ public let COLOR_TRANSPARENT_KEY = "Transparent"
 public let MIME_TYPE_KEY =  "mimeType"
 public let DATA_KEY =  "data"
 public let EXTRA_DATA_KEY =  "extraData"
+
+public let RECIPIENTS_KEY = "recipients"
+public let HANDLE_KEY = "handle"
+public let HANDLE_TYPE_KEY = "handleType"
+public let NAME_KEY = "name"
+public let NAME_PREFIX_KEY = "prefix"
+public let GIVEN_NAME_KEY = "givenName"
+public let MIDDLE_NAME_KEY = "middleName"
+public let FAMILY_NAME_KEY = "familyName"
+public let NAME_SUFFIX_KEY = "suffix"
+public let NICKNAME_KEY = "nickname"
+public let PHONETIC_REPRESENTATION_KEY = "phoneticRepresentation"
+public let IMAGE_KEY = "image"
+public let IDENTIFIER_KEY = "identifier"
+public let CUSTOM_IDENTIFIER_KEY = "customIdentifier"
+public let IS_ME_KEY = "isMe"
+public let CONTENT_KEY = "content"
+public let SPOKEN_PHRASE_KEY = "spokenPhrase"
+public let CONVERSATION_ID_KEY = "conversationId"
+public let SERVICE_NAME_KEY = "serviceName"
+public let SENDER_KEY = "sender"
 
 // MARK: Events
 

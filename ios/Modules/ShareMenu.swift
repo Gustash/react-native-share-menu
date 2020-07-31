@@ -1,4 +1,5 @@
 import Intents
+import IntentsUI
 
 @objc(ShareMenu)
 class ShareMenu: RCTEventEmitter {
@@ -117,40 +118,141 @@ class ShareMenu: RCTEventEmitter {
         sharedData = nil
     }
     
-    @objc
-    func donateShareIntent() {
+    @objc(donateShareIntent:resolve:reject:)
+    func donateShareIntent(options: [String:Any],
+                           resolve: @escaping RCTPromiseResolveBlock,
+                           reject: @escaping RCTPromiseRejectBlock) {
         guard #available(iOS 11.0, *) else  {
-            print("Error: \(FEATURE_NOT_SUPPORTED_VERSION)")
+            reject("error", FEATURE_NOT_SUPPORTED_VERSION, nil)
             return
         }
 
-        // Create an INSendMessageIntent to donate an intent for a conversation with Juan Chavez.
-        let groupName = INSpeakableString(spokenPhrase: "Juan Chavez")
-        let sendMessageIntent = INSendMessageIntent(recipients: nil,
-                                                    content: nil,
-                                                    speakableGroupName: groupName,
-                                                    conversationIdentifier: "sampleConversationIdentifier",
-                                                    serviceName: nil,
-                                                    sender: nil)
+        var recipients: [INPerson]?
+        var sender: INPerson?
 
-        // Add the user's avatar to the intent.
-//        let image = INImage(named: "Some Image")
-        let image: INImage? = nil
         if #available(iOS 12.0, *) {
+            recipients = loadPeople(options)
+
+            if let senderOption = options[SENDER_KEY] as? [String:Any?] {
+                sender = loadPerson(senderOption)
+            }
+        }
+
+        let content = options[CONTENT_KEY] as? String ?? nil
+
+        var groupName: INSpeakableString?
+
+        if let spokenPhrase = options[SPOKEN_PHRASE_KEY] as? String {
+            groupName = INSpeakableString(spokenPhrase: spokenPhrase)
+        }
+
+        var conversationId: String?
+
+        if let identifier = options[CONVERSATION_ID_KEY] as? String {
+            conversationId = identifier
+        }
+
+        var serviceName: String?
+
+        if let service = options[SERVICE_NAME_KEY] as? String {
+            serviceName = service
+        }
+
+        let sendMessageIntent = INSendMessageIntent(recipients: recipients,
+                                                    content: content,
+                                                    speakableGroupName: groupName,
+                                                    conversationIdentifier: conversationId,
+                                                    serviceName: serviceName,
+                                                    sender: sender)
+
+        if #available(iOS 12.0, *) {
+            var image: INImage?
+
+            if let imageUrl = options[IMAGE_KEY] as? String, let url = URL(string: imageUrl) {
+                image = INImage(url: url)
+            } else if let imageSource = options[IMAGE_KEY] {
+                DispatchQueue.main.sync {
+                    if let uiImage = RCTConvert.uiImage(imageSource) {
+                        image = INImage(uiImage: uiImage)
+                    }
+                }
+            }
+
             sendMessageIntent.setImage(image, forParameterNamed: \.speakableGroupName)
         }
 
         // Donate the intent.
         let interaction = INInteraction(intent: sendMessageIntent, response: nil)
         interaction.donate(completion: { error in
-            if error != nil {
-                print("Error: \(error)")
-                // Add error handling here.
-            } else {
-                print("Done!")
-                // Do something, e.g. send the content to a contact.
+            guard error == nil else {
+                reject("error", error!.localizedDescription, nil)
+                return
             }
+
+            resolve(nil)
         })
+    }
+
+    @available(iOS 12.0, *)
+    func loadPeople(_ options: [String:Any]) -> [INPerson]? {
+        guard options[RECIPIENTS_KEY] != nil else {
+            return nil
+        }
+
+        guard let recipientsOptions = options[RECIPIENTS_KEY] as? [[String:Any?]] else {
+            print("Error: \(WRONG_RECIPIENT_DATA)")
+            return nil
+        }
+
+        return recipientsOptions.map { loadPerson($0) }
+    }
+
+    @available(iOS 12.0, *)
+    func loadPerson(_ recipient: [String:Any?]) -> INPerson {
+        let handle = recipient[HANDLE_KEY] as! String
+        let handleType: INPersonHandleType = {
+            switch(recipient[HANDLE_TYPE_KEY] as? String) {
+            case "email":
+                return .emailAddress
+            case "phone":
+                return .phoneNumber
+            default:
+                return .unknown
+            }
+        }()
+
+        var nameComponents: PersonNameComponents?
+        var displayName: String?
+
+        if let nameDetails = recipient[NAME_KEY] as? [String:String] {
+            nameComponents = PersonNameComponents(from: nameDetails)
+        } else if let name = recipient[NAME_KEY] as? String {
+            displayName = name
+        }
+
+        let contactIdentifier = recipient[IDENTIFIER_KEY] as? String ?? nil
+        let customIdentifier = recipient[CUSTOM_IDENTIFIER_KEY] as? String ?? nil
+        let isMe = recipient[IS_ME_KEY] as? Bool ?? false
+
+        var image: INImage?
+
+        if let imageUrl = recipient[IMAGE_KEY] as? String, let url = URL(string: imageUrl) {
+            image = INImage(url: url)
+        } else if let imageSource = recipient[IMAGE_KEY] {
+            DispatchQueue.main.sync {
+                if let uiImage = RCTConvert.uiImage(imageSource) {
+                    image = INImage(uiImage: uiImage)
+                }
+            }
+        }
+
+        return INPerson(personHandle: INPersonHandle(value: handle, type: handleType),
+                        nameComponents: nameComponents,
+                        displayName: displayName,
+                        image: image,
+                        contactIdentifier: contactIdentifier,
+                        customIdentifier: customIdentifier,
+                        isMe: isMe)
     }
 
     func dispatchEvent(with data: [String:String], and extraData: [String:Any]?) {

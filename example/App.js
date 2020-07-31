@@ -6,7 +6,7 @@
  * @flow strict-local
  */
 import React, {useState, useEffect, useCallback} from 'react';
-import {StyleSheet, Text, View, Image} from 'react-native';
+import {StyleSheet, Text, View, Image, Button, Alert} from 'react-native';
 import ShareMenu from 'react-native-share-menu';
 
 type SharedItem = {
@@ -31,12 +31,24 @@ const App: () => React$Node = () => {
     setSharedMimeType(mimeType);
   }, []);
 
-  useEffect(() => {
-    ShareMenu.getInitialShare(handleShare);
+  const donate = useCallback(async () => {
+    try {
+      await ShareMenu.donateShareIntent({
+        spokenPhrase: 'John Doe',
+        conversationId: 'sampleConversationIdentifier',
+        image: require('./assets/johndoe.jpeg'),
+      });
+      Alert.alert(
+        'Donated Contact',
+        'Try sharing from another app directly to this contact',
+      );
+    } catch (err) {
+      console.error(err);
+    }
   }, []);
 
   useEffect(() => {
-    ShareMenu.donateShareIntent();
+    ShareMenu.getInitialShare(handleShare);
   }, []);
 
   useEffect(() => {
@@ -71,6 +83,7 @@ const App: () => React$Node = () => {
       <Text style={styles.instructions}>
         Extra data: {sharedExtraData ? JSON.stringify(sharedExtraData) : ''}
       </Text>
+      <Button title="Donate Contact" onPress={donate} />
     </View>
   );
 };

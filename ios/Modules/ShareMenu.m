@@ -5,6 +5,8 @@
 
 RCT_EXTERN_METHOD(getSharedText:(RCTResponseSenderBlock)callback)
 
-RCT_EXTERN_METHOD(donateShareIntent)
+RCT_EXTERN_METHOD(donateShareIntent:(NSDictionary*)options
+                            resolve:(RCTPromiseResolveBlock)resolver
+                             reject:(RCTPromiseRejectBlock)rejecter)
 
 @end

@@ -15,6 +15,7 @@ Pod::Spec.new do |s|
   s.swift_version = "5.2"
 
 
+  s.frameworks = "IntentsUI"
   s.source_files = "ios/**/*.{h,m,mm,swift}"
   s.exclude_files = [
     "ios/ShareViewController.swift",

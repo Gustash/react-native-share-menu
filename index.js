@@ -1,10 +1,13 @@
-import { NativeModules, NativeEventEmitter } from "react-native";
+import { NativeModules, NativeEventEmitter, Image } from "react-native";
 
 const { ShareMenu } = NativeModules;
 
 const EventEmitter = new NativeEventEmitter(ShareMenu);
 
 const NEW_SHARE_EVENT_NAME = "NewShareEvent";
+
+const prepareImage = (image) =>
+  typeof image === "number" ? Image.resolveAssetSource(image) : image;
 
 export const ShareMenuReactView = {
   dismissExtension(error = null) {
@@ -39,7 +42,22 @@ export default {
 
     return subscription;
   },
-  donateShareIntent() {
-    ShareMenu.donateShareIntent();
+  donateShareIntent(options) {
+    const transformedOptions = {
+      ...options,
+      image: prepareImage(options.image),
+      recipients: options.recipients?.map(({ image, ...recipient }) => ({
+        ...recipient,
+        image: prepareImage(image),
+      })),
+      sender: options.sender
+        ? {
+            ...options.sender,
+            image: prepareImage(options.sender.image),
+          }
+        : null,
+    };
+
+    return ShareMenu.donateShareIntent(transformedOptions);
   },
 };
