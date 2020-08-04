@@ -9,6 +9,35 @@ const NEW_SHARE_EVENT_NAME = "NewShareEvent";
 const prepareImage = (image) =>
   typeof image === "number" ? Image.resolveAssetSource(image) : image;
 
+const extractImageUri = (image) =>
+  !!image && typeof image === "object" ? image.uri : image;
+
+const parseShareData = (data) => {
+  if (!data?.intentData) {
+    return data;
+  }
+
+  const { intentData } = data;
+  const { recipients, sender } = intentData;
+
+  return {
+    ...data,
+    intentData: {
+      ...intentData,
+      recipients: recipients.map(({ image, ...recipient }) => ({
+        ...recipient,
+        image: extractImageUri(image),
+      })),
+      sender: sender
+        ? {
+            ...sender,
+            image: extractImageUri(sender.image),
+          }
+        : null,
+    },
+  };
+};
+
 export const ShareMenuReactView = {
   dismissExtension(error = null) {
     NativeModules.ShareMenuReactView.dismissExtension(error);
@@ -32,12 +61,12 @@ export default {
     this.getInitialShare(callback);
   },
   getInitialShare(callback) {
-    ShareMenu.getSharedText(callback);
+    ShareMenu.getSharedText((data) => callback(parseShareData(data)));
   },
   addNewShareListener(callback) {
     const subscription = EventEmitter.addListener(
       NEW_SHARE_EVENT_NAME,
-      callback
+      (data) => callback(parseShareData(data))
     );
 
     return subscription;

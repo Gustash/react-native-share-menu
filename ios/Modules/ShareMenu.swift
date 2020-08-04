@@ -17,15 +17,28 @@ class ShareMenu: RCTEventEmitter {
 
     var hasListeners = false
 
-    var _targetUrlScheme: String?
-    var targetUrlScheme: String
-    {
-        get {
-            return _targetUrlScheme!
-        }
-    }
+    let targetUrlScheme: String
+    let userDefaults: UserDefaults
 
     public override init() {
+        let bundleUrlTypes = Bundle.main.object(forInfoDictionaryKey: "CFBundleURLTypes") as? [NSDictionary]
+        assert(bundleUrlTypes != nil, NO_URL_TYPES_ERROR_MESSAGE)
+
+        let bundleUrlSchemes = bundleUrlTypes!.first?.value(forKey: "CFBundleURLSchemes") as? [String]
+        assert(bundleUrlSchemes != nil, NO_URL_SCHEMES_ERROR_MESSAGE)
+
+        let expectedUrlScheme = bundleUrlSchemes!.first
+        assert(expectedUrlScheme != nil, NO_URL_SCHEMES_ERROR_MESSAGE)
+
+        let bundleId = Bundle.main.bundleIdentifier
+        assert(bundleId != nil)
+
+        let userDefaults = UserDefaults(suiteName: "group.\(bundleId!)")
+        assert(userDefaults != nil, NO_APP_GROUP_ERROR)
+
+        self.targetUrlScheme = expectedUrlScheme!
+        self.userDefaults = userDefaults!
+
         super.init()
         ShareMenu._shared = self
 
@@ -67,29 +80,7 @@ class ShareMenu: RCTEventEmitter {
         application app: UIApplication,
         openUrl url: URL,
         options: [UIApplication.OpenURLOptionsKey : Any]) {
-        if _targetUrlScheme == nil {
-            guard let bundleUrlTypes = Bundle.main.object(forInfoDictionaryKey: "CFBundleURLTypes") as? [NSDictionary] else {
-                print("Error: \(NO_URL_TYPES_ERROR_MESSAGE)")
-                return
-            }
-            guard let bundleUrlSchemes = bundleUrlTypes.first?.value(forKey: "CFBundleURLSchemes") as? [String] else {
-                print("Error: \(NO_URL_SCHEMES_ERROR_MESSAGE)")
-                return
-            }
-            guard let expectedUrlScheme = bundleUrlSchemes.first else {
-                print("Error \(NO_URL_SCHEMES_ERROR_MESSAGE)")
-                return
-            }
-
-            _targetUrlScheme = expectedUrlScheme
-        }
-
         guard let scheme = url.scheme, scheme == targetUrlScheme else { return }
-        guard let bundleId = Bundle.main.bundleIdentifier else { return }
-        guard let userDefaults = UserDefaults(suiteName: "group.\(bundleId)") else {
-            print("Error: \(NO_APP_GROUP_ERROR)")
-            return
-        }
 
         let extraData = userDefaults.object(forKey: USER_DEFAULTS_EXTRA_DATA_KEY) as? [String:Any]
 
@@ -107,11 +98,7 @@ class ShareMenu: RCTEventEmitter {
             return
         }
 
-        if let bundleId = Bundle.main.bundleIdentifier, let userDefaults = UserDefaults(suiteName: "group.\(bundleId)") {
-            data[EXTRA_DATA_KEY] = userDefaults.object(forKey: USER_DEFAULTS_EXTRA_DATA_KEY) as? [String:Any]
-        } else {
-            print("Error: \(NO_APP_GROUP_ERROR)")
-        }
+        data[EXTRA_DATA_KEY] = userDefaults.object(forKey: USER_DEFAULTS_EXTRA_DATA_KEY) as? [String:Any]
 
         callback([data as Any])
         sharedData = nil
@@ -191,6 +178,13 @@ class ShareMenu: RCTEventEmitter {
                 return
             }
 
+            do {
+                try self.saveShareIntent(options)
+            }
+            catch {
+                reject("error", error.localizedDescription, nil)
+                return
+            }
             resolve(nil)
         })
     }
@@ -209,12 +203,89 @@ class ShareMenu: RCTEventEmitter {
         return recipientsOptions.map { INPerson.init(parse: $0) }
     }
 
+    func saveShareIntent(_ options: [String:Any]) throws {
+        let json = try JSONSerialization.data(withJSONObject: options)
+        
+        userDefaults.set(json, forKey: USER_DEFAULTS_SHARE_INTENT_KEY)
+        
+//        let data = Data()
+//
+//        if let conversationId = options[CONVERSATION_ID_KEY] as? String {
+//            data[CONVERSATION_ID_KEY] = conversationId
+//            data.setValue(conversationId, forKey: CONVERSATION_ID_KEY)
+//        }
+//        if let recipients = options[RECIPIENTS_KEY] as? [[String:Any]] {
+//            let recipientData = recipients.map { encodePerson($0) }
+//            data.setValue(recipientData, forKey: RECIPIENTS_KEY)
+//        }
+//        if let sender = options[SENDER_KEY] as? [String:Any] {
+//            data.setValue(encodePerson(sender), forKey: SENDER_KEY)
+//        }
+//        if let content = options[CONTENT_KEY] as? String {
+//            data.setValue(content, forKey: CONTENT_KEY)
+//        }
+//        if let groupName = options[GROUP_NAME_KEY] as? String {
+//            data.setValue(groupName, forKey: GROUP_NAME_KEY)
+//        }
+//        if let serviceName = options[SERVICE_NAME_KEY] as? String {
+//            data.setValue(serviceName, forKey: SERVICE_NAME_KEY)
+//        }
+//
+//        userDefaults.set(data, forKey: USER_DEFAULTS_SHARE_INTENT_KEY)
+    }
+    
+//    func encodePerson(_ person: [String:Any]) -> NSData {
+//        let data = NSData()
+//
+//        if let handle = person[HANDLE_KEY] as? String {
+//            data.setValue(handle, forKey: HANDLE_KEY)
+//        }
+//        let handleType = person[HANDLE_TYPE_KEY] as? String ?? "unknown"
+//        data.setValue(handleType, forKeyPath: HANDLE_TYPE_KEY)
+//        if let contactIdentifier = person[IDENTIFIER_KEY] as? String {
+//            data.setValue(contactIdentifier, forKeyPath: IDENTIFIER_KEY)
+//        }
+//        if let customIdentifier = person[CUSTOM_IDENTIFIER_KEY] as? String {
+//            data.setValue(customIdentifier, forKeyPath: CUSTOM_IDENTIFIER_KEY)
+//        }
+//        let isMe = person[IS_ME_KEY] as? Bool ?? false
+//        data.setValue(isMe, forKeyPath: IS_ME_KEY)
+//
+//        if let nameDetails = person[NAME_KEY] as? [String:String] {
+//            let nameDetailsData = NSData()
+//
+//            for key in nameDetails.keys {
+//                nameDetailsData.setValue(nameDetails[key], forKeyPath: key)
+//            }
+//
+//            data.setValue(nameDetailsData, forKeyPath: NAME_KEY)
+//        } else if let name = person[NAME_KEY] as? String {
+//            data.setValue(name, forKeyPath: NAME_KEY)
+//        }
+//
+//        if let imageUrl = person[IMAGE_KEY] as? String {
+//            data.setValue(imageUrl, forKeyPath: IMAGE_KEY)
+//        } else if let imageSource = person[IMAGE_KEY] {
+//            // Learn how to handle later
+//        }
+//
+//        return data
+//    }
+
     func dispatchEvent(with data: [String:String], and extraData: [String:Any]?) {
         guard hasListeners else { return }
 
         var finalData = data as [String:Any]
         if (extraData != nil) {
             finalData[EXTRA_DATA_KEY] = extraData
+        }
+        if let shareIntent = userDefaults.object(forKey: USER_DEFAULTS_SHARE_INTENT_KEY) as? Data {
+            do {
+                let decoded = try JSONSerialization.jsonObject(with: shareIntent) as? [String:Any]
+                finalData[INTENT_DATA_KEY] = decoded
+            } catch {
+                print("Error: \(COULD_NOT_LOAD_INTENT_DATA_ERROR)")
+            }
         }
         
         sendEvent(withName: NEW_SHARE_EVENT, body: finalData)

@@ -27,11 +27,13 @@ public let COULD_NOT_FIND_ITEM_ERROR = "Couldn't find item attached to this shar
 public let FEATURE_NOT_SUPPORTED_VERSION = "This feature is not supported on this iOS version"
 public let WRONG_RECIPIENT_DATA = "The recipient data was not formatted correctly"
 public let NO_CONVERSATION_ID_ERROR = "You haven't provided a conversation identifier"
+public let COULD_NOT_LOAD_INTENT_DATA_ERROR = "Could not load share intent data from UserDefaults"
 
 // MARK: Keys
 
 public let USER_DEFAULTS_KEY = "ShareMenuUserDefaults"
 public let USER_DEFAULTS_EXTRA_DATA_KEY = "ShareMenuUserDefaultsExtraData"
+public let USER_DEFAULTS_SHARE_INTENT_KEY = "ShareMenuUserDefaultsShareIntent"
 public let URL_SCHEME_INFO_PLIST_KEY = "AppURLScheme"
 public let HOST_APP_IDENTIFIER_INFO_PLIST_KEY = "HostAppBundleIdentifier"
 public let HOST_URL_SCHEME_INFO_PLIST_KEY = "HostAppURLScheme"
@@ -46,6 +48,7 @@ public let COLOR_TRANSPARENT_KEY = "Transparent"
 public let MIME_TYPE_KEY =  "mimeType"
 public let DATA_KEY =  "data"
 public let EXTRA_DATA_KEY =  "extraData"
+public let INTENT_DATA_KEY =  "intentData"
 
 public let RECIPIENTS_KEY = "recipients"
 public let HANDLE_KEY = "handle"

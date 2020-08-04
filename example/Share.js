@@ -2,6 +2,8 @@ import React, {useEffect, useState} from 'react';
 import {View, Text, Pressable, Image, StyleSheet} from 'react-native';
 import {ShareMenuReactView} from 'react-native-share-menu';
 
+import Recipient from './src/components/Recipient';
+
 const Button = ({onPress, title, style}) => (
   <Pressable onPress={onPress}>
     <Text style={[{fontSize: 16, margin: 16}, style]}>{title}</Text>
@@ -11,12 +13,14 @@ const Button = ({onPress, title, style}) => (
 const Share = () => {
   const [sharedData, setSharedData] = useState('');
   const [sharedMimeType, setSharedMimeType] = useState('');
+  const [sharedIntentData, setSharedIntentData] = useState(null);
   const [sending, setSending] = useState(false);
 
   useEffect(() => {
-    ShareMenuReactView.data().then(({mimeType, data}) => {
+    ShareMenuReactView.data().then(({mimeType, data, intentData}) => {
       setSharedData(data);
       setSharedMimeType(mimeType);
+      setSharedIntentData(intentData);
     });
   }, []);
 
@@ -50,6 +54,21 @@ const Share = () => {
           resizeMode="contain"
           source={{uri: sharedData}}
         />
+      )}
+      {!!sharedIntentData && (
+        <>
+          <Text style={styles.welcome}>Intent Data</Text>
+          <Text style={styles.instructions}>
+            Group Name: {sharedIntentData.groupName}
+          </Text>
+          <Text style={styles.instructions}>
+            Conversation ID: {sharedIntentData.conversationId}
+          </Text>
+          <Text style={styles.instructions}>Recipients:</Text>
+          {sharedIntentData.recipients?.map(({name, image, handle}) => {
+            return <Recipient key={handle} name={name} image={image} />;
+          })}
+        </>
       )}
       <View style={styles.buttonGroup}>
         <Button
@@ -100,6 +119,16 @@ const styles = StyleSheet.create({
   },
   buttonGroup: {
     alignItems: 'center',
+  },
+  welcome: {
+    fontSize: 20,
+    textAlign: 'center',
+    margin: 10,
+  },
+  instructions: {
+    textAlign: 'center',
+    color: '#333333',
+    marginBottom: 5,
   },
 });
 

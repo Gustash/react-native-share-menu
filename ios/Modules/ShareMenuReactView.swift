@@ -10,6 +10,17 @@ import MobileCoreServices
 @objc(ShareMenuReactView)
 public class ShareMenuReactView: NSObject {
     static var viewDelegate: ReactShareViewDelegate?
+    let userDefaults: UserDefaults
+    
+    public override init() {
+        let bundleId = Bundle.main.bundleIdentifier
+        assert(bundleId != nil)
+
+        let userDefaults = UserDefaults(suiteName: "group.\(bundleId!)")
+        assert(userDefaults != nil, NO_APP_GROUP_ERROR)
+
+        self.userDefaults = userDefaults!
+    }
     
     @objc
     static public func requiresMainQueueSetup() -> Bool {
@@ -88,48 +99,44 @@ public class ShareMenuReactView: NSObject {
                 return
             }
             
-            resolve([MIME_TYPE_KEY: mimeType, DATA_KEY: data])
+            var finalData: [String:Any?] = [MIME_TYPE_KEY: mimeType, DATA_KEY: data]
+            
+            if let shareIntent = self.userDefaults.object(forKey: USER_DEFAULTS_SHARE_INTENT_KEY) as? Data {
+                do {
+                    let decoded = try JSONSerialization.jsonObject(with: shareIntent) as? [String:Any]
+                    finalData[INTENT_DATA_KEY] = decoded
+                } catch {
+                    print("Error: \(COULD_NOT_LOAD_INTENT_DATA_ERROR)")
+                }
+            }
+            
+            resolve(finalData)
         }
     }
     
     func extractDataFromContext(context: NSExtensionContext, withCallback callback: @escaping (String?, String?, NSException?) -> Void) {
         let item:NSExtensionItem! = context.inputItems.first as? NSExtensionItem
-        let attachments:[AnyObject]! = item.attachments
+        let attachments:[NSItemProvider]! = item.attachments
+        
+        if let provider = attachments.first {
+            if provider.isURL {
+                provider.loadItem(forTypeIdentifier: kUTTypeURL as String, options: nil) { (item, error) in
+                    let url: URL! = item as? URL
 
-        var urlProvider:NSItemProvider! = nil
-        var imageProvider:NSItemProvider! = nil
-        var textProvider:NSItemProvider! = nil
+                    callback(url.absoluteString, "text/plain", nil)
+                }
+            } else if provider.isFileURL {
+                provider.loadItem(forTypeIdentifier: kUTTypeData as String, options: nil) { (item, error) in
+                    let url: URL! = item as? URL
 
-        for provider in attachments {
-            if provider.hasItemConformingToTypeIdentifier(kUTTypeURL as String) {
-                urlProvider = provider as? NSItemProvider
-                break
-            } else if provider.hasItemConformingToTypeIdentifier(kUTTypeText as String) {
-                textProvider = provider as? NSItemProvider
-                break
-            } else if provider.hasItemConformingToTypeIdentifier(kUTTypeImage as String) {
-                imageProvider = provider as? NSItemProvider
-                break
-            }
-        }
+                    callback(url.absoluteString, self.extractMimeType(from: url), nil)
+                }
+            } else {
+                provider.loadItem(forTypeIdentifier: kUTTypeText as String, options: nil) { (item, error) in
+                    let text:String! = item as? String
 
-        if (urlProvider != nil) {
-            urlProvider.loadItem(forTypeIdentifier: kUTTypeURL as String, options: nil) { (item, error) in
-                let url: URL! = item as? URL
-
-                callback(url.absoluteString, "text/plain", nil)
-            }
-        } else if (imageProvider != nil) {
-            imageProvider.loadItem(forTypeIdentifier: kUTTypeImage as String, options: nil) { (item, error) in
-                let url: URL! = item as? URL
-
-                callback(url.absoluteString, self.extractMimeType(from: url), nil)
-            }
-        } else if (textProvider != nil) {
-            textProvider.loadItem(forTypeIdentifier: kUTTypeText as String, options: nil) { (item, error) in
-                let text:String! = item as? String
-
-                callback(text, "text/plain", nil)
+                    callback(text, "text/plain", nil)
+                }
             }
         } else {
             callback(nil, nil, NSException(name: NSExceptionName(rawValue: "Error"), reason:"couldn't find provider", userInfo:nil))

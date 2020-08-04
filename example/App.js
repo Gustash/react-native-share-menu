@@ -6,8 +6,18 @@
  * @flow strict-local
  */
 import React, {useState, useEffect, useCallback} from 'react';
-import {StyleSheet, Text, View, Image, Button, Alert} from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  View,
+  Image,
+  Button,
+  Alert,
+  StatusBar,
+} from 'react-native';
 import ShareMenu from 'react-native-share-menu';
+
+import Recipient from './src/components/Recipient';
 
 type SharedItem = {
   mimeType: string,
@@ -18,17 +28,19 @@ const App: () => React$Node = () => {
   const [sharedData, setSharedData] = useState('');
   const [sharedMimeType, setSharedMimeType] = useState('');
   const [sharedExtraData, setSharedExtraData] = useState(null);
+  const [sharedIntentData, setSharedIntentData] = useState(null);
 
   const handleShare = useCallback((item: ?SharedItem) => {
     if (!item) {
       return;
     }
 
-    const {mimeType, data, extraData} = item;
+    const {mimeType, data, extraData, intentData} = item;
 
     setSharedData(data);
     setSharedExtraData(extraData);
     setSharedMimeType(mimeType);
+    setSharedIntentData(intentData);
   }, []);
 
   const donate = useCallback(async () => {
@@ -78,6 +90,7 @@ const App: () => React$Node = () => {
 
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="dark-content" />
       <Text style={styles.welcome}>React Native Share Menu</Text>
       <Text style={styles.instructions}>Shared type: {sharedMimeType}</Text>
       <Text style={styles.instructions}>
@@ -101,6 +114,21 @@ const App: () => React$Node = () => {
         Extra data: {sharedExtraData ? JSON.stringify(sharedExtraData) : ''}
       </Text>
       <Button title="Donate Contact" onPress={donate} />
+      {!!sharedIntentData && (
+        <>
+          <Text style={styles.welcome}>Intent Data</Text>
+          <Text style={styles.instructions}>
+            Group Name: {sharedIntentData.groupName}
+          </Text>
+          <Text style={styles.instructions}>
+            Conversation ID: {sharedIntentData.conversationId}
+          </Text>
+          <Text style={styles.instructions}>Recipients:</Text>
+          {sharedIntentData.recipients?.map(({name, image, handle}) => {
+            return <Recipient key={handle} name={name} image={image} />;
+          })}
+        </>
+      )}
     </View>
   );
 };
