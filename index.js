@@ -48,8 +48,9 @@ export const ShareMenuReactView = {
   continueInApp(extraData = null) {
     NativeModules.ShareMenuReactView.continueInApp(extraData);
   },
-  data() {
-    return NativeModules.ShareMenuReactView.data();
+  async data() {
+    const data = await NativeModules.ShareMenuReactView.data();
+    return parseShareData(data);
   },
 };
 

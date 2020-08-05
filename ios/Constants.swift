@@ -33,7 +33,8 @@ public let COULD_NOT_LOAD_INTENT_DATA_ERROR = "Could not load share intent data 
 
 public let USER_DEFAULTS_KEY = "ShareMenuUserDefaults"
 public let USER_DEFAULTS_EXTRA_DATA_KEY = "ShareMenuUserDefaultsExtraData"
-public let USER_DEFAULTS_SHARE_INTENT_KEY = "ShareMenuUserDefaultsShareIntent"
+public let USER_DEFAULTS_SHARE_INTENTS_KEY = "ShareMenuUserDefaultsShareIntents"
+public let USER_DEFAULTS_CONVERSATION_ID_KEY = "ShareMenuUserDefaultsConversationId"
 public let URL_SCHEME_INFO_PLIST_KEY = "AppURLScheme"
 public let HOST_APP_IDENTIFIER_INFO_PLIST_KEY = "HostAppBundleIdentifier"
 public let HOST_URL_SCHEME_INFO_PLIST_KEY = "HostAppURLScheme"

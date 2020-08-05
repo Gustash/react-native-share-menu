@@ -1,7 +1,7 @@
 import IntentsUI
 
 @objc(ShareMenu)
-class ShareMenu: RCTEventEmitter {
+class ShareMenu: RCTEventEmitter, ShareIntentHandler {
 
     private(set) static var _shared: ShareMenu?
     @objc public static var shared: ShareMenu
@@ -204,9 +204,15 @@ class ShareMenu: RCTEventEmitter {
     }
 
     func saveShareIntent(_ options: [String:Any]) throws {
-        let json = try JSONSerialization.data(withJSONObject: options)
+        let conversationId = options[CONVERSATION_ID_KEY] as! String
+        var updatedSavedShareIntents = savedShareIntents.filter {
+            $0[CONVERSATION_ID_KEY] as! String != conversationId
+        }
+        updatedSavedShareIntents.append(options)
         
-        userDefaults.set(json, forKey: USER_DEFAULTS_SHARE_INTENT_KEY)
+        let json = try JSONSerialization.data(withJSONObject: updatedSavedShareIntents)
+        
+        userDefaults.set(json, forKey: USER_DEFAULTS_SHARE_INTENTS_KEY)
         
 //        let data = Data()
 //
@@ -279,13 +285,10 @@ class ShareMenu: RCTEventEmitter {
         if (extraData != nil) {
             finalData[EXTRA_DATA_KEY] = extraData
         }
-        if let shareIntent = userDefaults.object(forKey: USER_DEFAULTS_SHARE_INTENT_KEY) as? Data {
-            do {
-                let decoded = try JSONSerialization.jsonObject(with: shareIntent) as? [String:Any]
-                finalData[INTENT_DATA_KEY] = decoded
-            } catch {
-                print("Error: \(COULD_NOT_LOAD_INTENT_DATA_ERROR)")
-            }
+        
+        if let conversationId = userDefaults.object(forKey: USER_DEFAULTS_CONVERSATION_ID_KEY) as? String,
+           let shareIntent = savedShareIntents.first(where: { $0[CONVERSATION_ID_KEY] as! String == conversationId }) {
+            finalData[INTENT_DATA_KEY] = shareIntent
         }
         
         sendEvent(withName: NEW_SHARE_EVENT, body: finalData)

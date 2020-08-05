@@ -14,22 +14,35 @@ import RNShareMenu
 import Intents
 
 class ShareViewController: SLComposeServiceViewController {
-  var hostAppId: String?
-  var hostAppUrlScheme: String?
+  var hostAppUrlScheme: String!
+  var userDefaults: UserDefaults!
+  var groupFileManagerContainer: URL!
   
   override func viewDidLoad() {
     super.viewDidLoad()
+
+    let hostAppId = Bundle.main.object(forInfoDictionaryKey: HOST_APP_IDENTIFIER_INFO_PLIST_KEY) as? String
+    assert(hostAppId != nil, NO_INFO_PLIST_INDENTIFIER_ERROR)
+
+    let hostAppUrlScheme = Bundle.main.object(forInfoDictionaryKey: HOST_URL_SCHEME_INFO_PLIST_KEY) as? String
+    assert(hostAppUrlScheme != nil, NO_INFO_PLIST_URL_SCHEME_ERROR)
+
+    let userDefaults = UserDefaults(suiteName: "group.\(hostAppId!)")
+    assert(userDefaults != nil, NO_APP_GROUP_ERROR)
     
-    if let hostAppId = Bundle.main.object(forInfoDictionaryKey: HOST_APP_IDENTIFIER_INFO_PLIST_KEY) as? String {
-      self.hostAppId = hostAppId
+    let groupFileManagerContainer = FileManager.default
+      .containerURL(forSecurityApplicationGroupIdentifier: "group.\(hostAppId!)")
+    assert(groupFileManagerContainer != nil, NO_APP_GROUP_ERROR)
+
+    self.hostAppUrlScheme = hostAppUrlScheme!
+    self.userDefaults = userDefaults!
+    self.groupFileManagerContainer = groupFileManagerContainer
+
+    if #available(iOSApplicationExtension 13.0, *), let intent = self.extensionContext?.intent as? INSendMessageIntent {
+      let conversationIdentifier = intent.conversationIdentifier
+      storeConversationId(conversationIdentifier!)
     } else {
-      print("Error: \(NO_INFO_PLIST_INDENTIFIER_ERROR)")
-    }
-    
-    if let hostAppUrlScheme = Bundle.main.object(forInfoDictionaryKey: HOST_URL_SCHEME_INFO_PLIST_KEY) as? String {
-      self.hostAppUrlScheme = hostAppUrlScheme
-    } else {
-      print("Error: \(NO_INFO_PLIST_URL_SCHEME_ERROR)")
+      removeConversationId()
     }
   }
 
@@ -87,28 +100,22 @@ class ShareViewController: SLComposeServiceViewController {
   }
 
   func storeExtraData(_ data: [String:Any]) {
-    guard let hostAppId = self.hostAppId else {
-      print("Error: \(NO_INFO_PLIST_INDENTIFIER_ERROR)")
-      return
-    }
-    guard let userDefaults = UserDefaults(suiteName: "group.\(hostAppId)") else {
-      print("Error: \(NO_APP_GROUP_ERROR)")
-      return
-    }
     userDefaults.set(data, forKey: USER_DEFAULTS_EXTRA_DATA_KEY)
     userDefaults.synchronize()
   }
 
   func removeExtraData() {
-    guard let hostAppId = self.hostAppId else {
-      print("Error: \(NO_INFO_PLIST_INDENTIFIER_ERROR)")
-      return
-    }
-    guard let userDefaults = UserDefaults(suiteName: "group.\(hostAppId)") else {
-      print("Error: \(NO_APP_GROUP_ERROR)")
-      return
-    }
     userDefaults.removeObject(forKey: USER_DEFAULTS_EXTRA_DATA_KEY)
+    userDefaults.synchronize()
+  }
+  
+  func storeConversationId(_ conversationId: String) {
+    userDefaults.set(conversationId, forKey: USER_DEFAULTS_CONVERSATION_ID_KEY)
+    userDefaults.synchronize()
+  }
+  
+  func removeConversationId() {
+    userDefaults.removeObject(forKey: USER_DEFAULTS_CONVERSATION_ID_KEY)
     userDefaults.synchronize()
   }
   
@@ -122,18 +129,10 @@ class ShareViewController: SLComposeServiceViewController {
         self.exit(withError: COULD_NOT_FIND_STRING_ERROR)
         return
       }
-      guard let hostAppId = self.hostAppId else {
-        self.exit(withError: NO_INFO_PLIST_INDENTIFIER_ERROR)
-        return
-      }
-      guard let userDefaults = UserDefaults(suiteName: "group.\(hostAppId)") else {
-        self.exit(withError: NO_APP_GROUP_ERROR)
-        return
-      }
       
-      userDefaults.set([DATA_KEY: text, MIME_TYPE_KEY: "text/plain"],
+      self.userDefaults.set([DATA_KEY: text, MIME_TYPE_KEY: "text/plain"],
                        forKey: USER_DEFAULTS_KEY)
-      userDefaults.synchronize()
+      self.userDefaults.synchronize()
       
       self.openHostApp()
     }
@@ -149,18 +148,10 @@ class ShareViewController: SLComposeServiceViewController {
         self.exit(withError: COULD_NOT_FIND_URL_ERROR)
         return
       }
-      guard let hostAppId = self.hostAppId else {
-        self.exit(withError: NO_INFO_PLIST_INDENTIFIER_ERROR)
-        return
-      }
-      guard let userDefaults = UserDefaults(suiteName: "group.\(hostAppId)") else {
-        self.exit(withError: NO_APP_GROUP_ERROR)
-        return
-      }
       
-      userDefaults.set([DATA_KEY: url.absoluteString, MIME_TYPE_KEY: "text/plain"],
+      self.userDefaults.set([DATA_KEY: url.absoluteString, MIME_TYPE_KEY: "text/plain"],
                        forKey: USER_DEFAULTS_KEY)
-      userDefaults.synchronize()
+      self.userDefaults.synchronize()
       
       self.openHostApp()
     }
@@ -176,25 +167,11 @@ class ShareViewController: SLComposeServiceViewController {
         self.exit(withError: COULD_NOT_FIND_IMG_ERROR)
         return
       }
-      guard let hostAppId = self.hostAppId else {
-        self.exit(withError: NO_INFO_PLIST_INDENTIFIER_ERROR)
-        return
-      }
-      guard let userDefaults = UserDefaults(suiteName: "group.\(hostAppId)") else {
-        self.exit(withError: NO_APP_GROUP_ERROR)
-        return
-      }
-      guard let groupFileManagerContainer = FileManager.default
-              .containerURL(forSecurityApplicationGroupIdentifier: "group.\(hostAppId)")
-      else {
-        self.exit(withError: NO_APP_GROUP_ERROR)
-        return
-      }
       
       let mimeType = url.extractMimeType()
       let fileExtension = url.pathExtension
       let fileName = UUID().uuidString
-      let filePath = groupFileManagerContainer
+      let filePath = self.groupFileManagerContainer
         .appendingPathComponent("\(fileName).\(fileExtension)")
       
       guard self.moveFileToDisk(from: url, to: filePath) else {
@@ -202,9 +179,9 @@ class ShareViewController: SLComposeServiceViewController {
         return
       }
       
-      userDefaults.set([DATA_KEY: filePath.absoluteString,  MIME_TYPE_KEY: mimeType],
+      self.userDefaults.set([DATA_KEY: filePath.absoluteString,  MIME_TYPE_KEY: mimeType],
                        forKey: USER_DEFAULTS_KEY)
-      userDefaults.synchronize()
+      self.userDefaults.synchronize()
       
       self.openHostApp()
     }
@@ -230,12 +207,7 @@ class ShareViewController: SLComposeServiceViewController {
   }
   
   internal func openHostApp() {
-    guard let urlScheme = self.hostAppUrlScheme else {
-      exit(withError: NO_INFO_PLIST_URL_SCHEME_ERROR)
-      return
-    }
-    
-    let url = URL(string: urlScheme)
+    let url = URL(string: hostAppUrlScheme)
     let selectorOpenURL = sel_registerName("openURL:")
     var responder: UIResponder? = self
     

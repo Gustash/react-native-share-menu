@@ -8,15 +8,15 @@
 import MobileCoreServices
 
 @objc(ShareMenuReactView)
-public class ShareMenuReactView: NSObject {
+public class ShareMenuReactView: NSObject, ShareIntentHandler {
     static var viewDelegate: ReactShareViewDelegate?
     let userDefaults: UserDefaults
     
     public override init() {
-        let bundleId = Bundle.main.bundleIdentifier
-        assert(bundleId != nil)
+        let hostAppId = Bundle.main.object(forInfoDictionaryKey: HOST_APP_IDENTIFIER_INFO_PLIST_KEY) as? String
+        assert(hostAppId != nil, NO_INFO_PLIST_INDENTIFIER_ERROR)
 
-        let userDefaults = UserDefaults(suiteName: "group.\(bundleId!)")
+        let userDefaults = UserDefaults(suiteName: "group.\(hostAppId!)")
         assert(userDefaults != nil, NO_APP_GROUP_ERROR)
 
         self.userDefaults = userDefaults!
@@ -101,13 +101,9 @@ public class ShareMenuReactView: NSObject {
             
             var finalData: [String:Any?] = [MIME_TYPE_KEY: mimeType, DATA_KEY: data]
             
-            if let shareIntent = self.userDefaults.object(forKey: USER_DEFAULTS_SHARE_INTENT_KEY) as? Data {
-                do {
-                    let decoded = try JSONSerialization.jsonObject(with: shareIntent) as? [String:Any]
-                    finalData[INTENT_DATA_KEY] = decoded
-                } catch {
-                    print("Error: \(COULD_NOT_LOAD_INTENT_DATA_ERROR)")
-                }
+            if let conversationId = self.userDefaults.object(forKey: USER_DEFAULTS_CONVERSATION_ID_KEY) as? String,
+               let shareIntent = self.savedShareIntents.first(where: { $0[CONVERSATION_ID_KEY] as! String == conversationId }) {
+                finalData[INTENT_DATA_KEY] = shareIntent
             }
             
             resolve(finalData)
